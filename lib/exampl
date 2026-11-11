@@ -1,0 +1,343 @@
+import 'dart:ui'; // 👈 ImageFilter ke liye yeh import lazmi add karna!
+import 'package:expenses_tracker/Provider/expenses_provider.dart';
+import 'package:expenses_tracker/Provider/theme_provider.dart';
+import 'package:expenses_tracker/Screens/add_expenses_screen.dart';
+import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
+import 'package:intl/intl.dart';
+import 'package:provider/provider.dart';
+
+class DashboardScreen extends StatefulWidget {
+  const DashboardScreen({super.key});
+
+  @override
+  State<DashboardScreen> createState() => _DashboardScreenState();
+}
+
+class _DashboardScreenState extends State<DashboardScreen> {
+  @override
+  void initState() {
+    super.initState();
+    Future.microtask(() {
+      if (mounted) {
+        context.read<ExpensesProvider>().loadTransactions();
+      }
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final themeProvider = Provider.of<ThemeProvider>(context);
+    final isDark = themeProvider.themeMode == ThemeMode.dark ||
+        (themeProvider.themeMode == ThemeMode.system &&
+            MediaQuery.of(context).platformBrightness == Brightness.dark);
+
+    return Scaffold(
+      extendBodyBehindAppBar: true,
+      // 1. Background ko hum transparent kar rahe hain taake body ka gradient dikhe
+      backgroundColor: Colors.transparent,
+      appBar: AppBar(
+        title: Text(
+          'DashBoard',
+          style: GoogleFonts.poppins(
+            fontWeight: FontWeight.bold,
+            fontSize: 20,
+            color: Colors.white, // Glass theme par white title zyada suit karega
+          ),
+        ),
+        actions: [
+          IconButton(
+            onPressed: () {
+              themeProvider.toggleTheme(!isDark);
+            },
+            icon: Icon(isDark ? Icons.light_mode : Icons.dark_mode, color: Colors.white),
+          )
+        ],
+        centerTitle: true,
+        elevation: 0,
+        backgroundColor: Colors.transparent,
+      ),
+      // 2. Poori Body ko Container se wrap kiya taake Ali Raza jaisa vibrant gradient background aaye
+      body: Container(
+        width: double.infinity,
+        height: double.infinity,
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [
+              Color(0xFF3A1C71), // Vibrant Purple
+              Color(0xFFD76D77), // Soft Coral/Pink Accent
+              Color(0xFF172554), // Deep Blue
+            ],
+          ),
+        ),
+        child: SafeArea(
+          child: Consumer<ExpensesProvider>(builder: (context, provider, child) {
+            return Column(
+              children: [
+
+                // ==================== 1. TOTAL BALANCE GLASS CARD ====================
+                // Yahan hum ne lagaya ClipRRect taake border corners blur se bahar na nikalpayein
+                Padding(
+                  padding: const EdgeInsets.all(15.0),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(30),
+                    child: BackdropFilter(
+                      filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10), // Frosted glass blur
+                      child: Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.all(20),
+                        decoration: BoxDecoration(
+                            // Solid colors ki jagah semi-transparent white/purple look
+                            color: Colors.white.withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(30),
+                            border: Border.all(
+                              color: Colors.white.withOpacity(0.2), // Light glass border
+                              width: 1.5,
+                            ),
+                            boxShadow: [
+                              BoxShadow(
+                                  color: Colors.purple.withValues(alpha: 0.2),
+                                  spreadRadius: 2,
+                                  blurRadius: 15,
+                                  offset: const Offset(0, 5))
+                            ]),
+                        child: Column(
+                          children: [
+                            const Text(
+                              'Total Balance',
+                              style: TextStyle(color: Colors.white70, fontSize: 16),
+                            ),
+                            const SizedBox(height: 5),
+                            Text(
+                              'PKR ${provider.netExpense.toStringAsFixed(2)}',
+                              style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 32,
+                                  fontWeight: FontWeight.bold),
+                            ),
+                            const SizedBox(height: 20),
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                // Income Row
+                                Row(
+                                  children: [
+                                    const CircleAvatar(
+                                      radius: 15,
+                                      backgroundColor: Colors.white24,
+                                      child: Icon(
+                                        Icons.arrow_downward,
+                                        color: Colors.greenAccent,
+                                      ),
+                                    ),
+                                    const SizedBox(width: 8),
+                                    Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        const Text(
+                                          'Income',
+                                          style: TextStyle(
+                                              color: Colors.white70, fontSize: 12),
+                                        ),
+                                        Text(
+                                          'PKR ${provider.totalIncome.toStringAsFixed(0)}',
+                                          style: const TextStyle(
+                                              color: Colors.white, // Text clear karne ke liye white kiya
+                                              fontWeight: FontWeight.bold),
+                                        )
+                                      ],
+                                    )
+                                  ],
+                                ),
+                                // Expense Row
+                                Row(
+                                  children: [
+                                    const CircleAvatar(
+                                      radius: 15,
+                                      backgroundColor: Colors.white24,
+                                      child: Icon(
+                                        Icons.arrow_upward, // Arrow direction upard kiya expense ke liye
+                                        color: Colors.redAccent,
+                                      ),
+                                    ),
+                                    const SizedBox(width: 8),
+                                    Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        const Text(
+                                          'Expense',
+                                          style: TextStyle(
+                                              color: Colors.white70, fontSize: 12),
+                                        ),
+                                        Text(
+                                          'PKR ${provider.totalExpense.toStringAsFixed(0)}',
+                                          style: const TextStyle(
+                                              color: Colors.white,
+                                              fontWeight: FontWeight.bold),
+                                        )
+                                      ],
+                                    )
+                                  ],
+                                )
+                              ],
+                            )
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+
+                // RECENT TRANSACTIONS HEADER
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 20),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Text(
+                        'Recent Transactions',
+                        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: Colors.white),
+                      ),
+                      if (provider.transactions.isNotEmpty)
+                        Text(
+                          '${provider.transactions.length} items',
+                          style: const TextStyle(color: Colors.white70),
+                        )
+                    ],
+                  ),
+                ),
+
+                // ==================== 2. TRANSACTION LIST ITEMS ====================
+                Expanded(
+                  child: provider.transactions.isEmpty
+                      ? const Center(child: Text('No Transaction added yet!', style: TextStyle(color: Colors.white60)))
+                      : ListView.builder(
+                          itemCount: provider.transactions.length,
+                          itemBuilder: (context, index) {
+                            final tx = provider.transactions[index];
+
+                            // Yahan Card widget ko hata kar ClipRRect lagaya taake list items bhi glass ban sakein!
+                            return Padding(
+                              padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 6),
+                              child: ClipRRect(
+                                borderRadius: BorderRadius.circular(15),
+                                child: BackdropFilter(
+                                  filter: ImageFilter.blur(sigmaX: 5, sigmaY: 5),
+                                  child: Container(
+                                    decoration: BoxDecoration(
+                                      color: Colors.white.withOpacity(0.07), // Translucent effect
+                                      borderRadius: BorderRadius.circular(15),
+                                      border: Border.all(color: Colors.white.withOpacity(0.1)),
+                                    ),
+                                    child: ListTile(
+                                      leading: CircleAvatar(
+                                        backgroundColor: tx.isIncome
+                                            ? Colors.greenAccent.withOpacity(0.2)
+                                            : Colors.redAccent.withOpacity(0.2),
+                                        child: Icon(
+                                          tx.isIncome
+                                              ? Icons.keyboard_arrow_down_rounded
+                                              : Icons.shopping_bag_outlined,
+                                          color: tx.isIncome ? Colors.greenAccent : Colors.redAccent,
+                                        ),
+                                      ),
+                                      title: Text(tx.title, style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.white)),
+                                      subtitle: Text(
+                                        DateFormat('dd MMM yyyy').format(tx.date),
+                                        style: const TextStyle(color: Colors.white60),
+                                      ),
+                                      trailing: Row(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          Text(
+                                            '${tx.isIncome ? "+" : "-"} PKR ${tx.amount.toStringAsFixed(0)}',
+                                            style: TextStyle(
+                                              fontWeight: FontWeight.bold,
+                                              color: tx.isIncome ? Colors.greenAccent : Colors.redAccent,
+                                              fontSize: 16,
+                                            ),
+                                          ),
+                                          IconButton(
+                                            onPressed: () {
+                                              provider.deleteTransaction(tx.id);
+                                            },
+                                            icon: const Icon(Icons.delete_outline, color: Colors.white60),
+                                          )
+                                        ],
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            );
+                          },
+                        ),
+                )
+              ],
+            );
+          }),
+        ),
+      ),
+      floatingActionButton: FloatingActionButton(
+          backgroundColor: Colors.indigoAccent,
+          foregroundColor: Colors.white,
+          onPressed: () {
+            Navigator.push(context,
+                MaterialPageRoute(builder: (context) => const AddExpensesScreen()));
+          },
+          child: const Icon(Icons.add)),
+    );
+  }
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+ extendBodyBehindAppBar: true,
+      backgroundColor: Colors.transparent,
+      appBar: AppBar(
+       automaticallyImplyLeading: false,
+        title: Text(
+          'DashBoard',
+          style: GoogleFonts.poppins(
+            fontWeight: FontWeight.bold,
+            fontSize: 20,
+            color: Colors.white,
+          ),
+        ),
+        actions: [
+          IconButton(
+            onPressed: () {
+              themeProvider.toggleTheme(!isDark);
+            },
+            icon: Icon(isDark ? Icons.light_mode : Icons.dark_mode, color: Colors.white),
+          )
+        ],
+        centerTitle: true,
+        elevation: 0,
+        backgroundColor: Colors.transparent,
+      ),

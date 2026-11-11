@@ -1,0 +1,126 @@
+import 'package:expenses_tracker/Model/transaction_model.dart';
+import 'package:expenses_tracker/Provider/expenses_provider.dart';
+import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import 'package:uuid/uuid.dart';
+
+class AddExpensesScreen extends StatefulWidget {
+  const AddExpensesScreen({super.key});
+
+  @override
+  State<AddExpensesScreen> createState() => _AddExpensesScreenState();
+}
+
+class _AddExpensesScreenState extends State<AddExpensesScreen> {
+  final _formKey = GlobalKey<FormState>();
+  final _titleController = TextEditingController();
+  final _amountController = TextEditingController();
+  String _category = 'Food';
+  bool _isIncome = false;
+  DateTime _selectedDate = DateTime.now();
+
+  void _submitData() {
+    if (_formKey.currentState!.validate()) {
+      final newTx = TransactionModel(
+        id: const Uuid().v4(),
+        title: _titleController.text,
+        amount: double.parse(_amountController.text),
+        date: _selectedDate,
+        category: _category,
+        isIncome: _isIncome,
+      );
+
+      Provider.of<ExpensesProvider>(context, listen: false).addTransaction(newTx);
+      Navigator.of(context).pop();
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Add Transaction'),
+        centerTitle: true,
+      ),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(20),
+        child: Form(
+          key: _formKey,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              TextFormField(
+                controller: _titleController,
+                decoration: const InputDecoration(labelText: 'Title'),
+                validator: (value) =>
+                    value == null || value.isEmpty ? 'Please enter a title' : null,
+              ),
+              const SizedBox(height: 10),
+              TextFormField(
+                controller: _amountController,
+                decoration: const InputDecoration(labelText: 'Amount'),
+                keyboardType: TextInputType.number,
+                validator: (value) {
+                  if (value == null || value.isEmpty) return 'Please enter an amount';
+                  if (double.tryParse(value) == null) return 'Please enter a valid number';
+                  return null;
+                },
+              ),
+              const SizedBox(height: 20),
+              SwitchListTile(
+                title: Text(_isIncome ? 'Income' : 'Expense'),
+                value: _isIncome,
+                onChanged: (val) => setState(() => _isIncome = val),
+                secondary: Icon(
+                  _isIncome ? Icons.arrow_upward : Icons.arrow_downward,
+                  color: _isIncome ? Colors.green : Colors.red,
+                ),
+              ),
+              const SizedBox(height: 20),
+              Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      'Date: ${_selectedDate.toLocal().toString().split(' ')[0]}',
+                    ),
+                  ),
+                  TextButton(
+                    onPressed: () async {
+                      final pickedDate = await showDatePicker(
+                        context: context,
+                        initialDate: _selectedDate,
+                        firstDate: DateTime(2020),
+                        lastDate: DateTime.now(),
+                      );
+                      if (pickedDate != null) {
+                        setState(() => _selectedDate = pickedDate);
+                      }
+                    },
+                    child: const Text('Choose Date'),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 30),
+              ElevatedButton(
+                onPressed: _submitData,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.indigo,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(vertical: 15),
+                ),
+                child: const Text('Add Transaction'),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  @override
+  void dispose() {
+    _titleController.dispose();
+    _amountController.dispose();
+    super.dispose();
+  }
+}
